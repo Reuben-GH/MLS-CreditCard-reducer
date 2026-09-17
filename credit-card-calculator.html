@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Life Sorted — Credit Card Reduction Calculator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* ── Reset & base ─────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 15px; line-height: 1.5; color: #14213d;
+  background: #eef2f8; min-height: 100vh;
+}
+
+/* ── Colour tokens ────────────────────────────────────── */
+:root {
+  --c900: #14284F; --c800: #1E3B6E; --c600: #2F5FA8;
+  --c400: #7FA6DD; --c50:  #EAF1FB;
+  --white: #ffffff; --border: #c6d7ef; --muted: #5b7aa0;
+  --danger: #c0392b; --text: #14213d; --text-light: #3a5578;
+}
+
+/* ── Header ───────────────────────────────────────────── */
+header {
+  background: var(--c900); color: var(--white);
+  padding: 0 24px; display: flex; align-items: center;
+  height: 60px; gap: 14px; position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,.25);
+}
+.logo-badge {
+  width: 38px; height: 38px; border-radius: 8px;
+  background: var(--c600); display: flex; align-items: center;
+  justify-content: center; font-weight: 700; font-size: 14px;
+  letter-spacing: .5px; flex-shrink: 0;
+}
+.header-title { font-size: 17px; font-weight: 600; letter-spacing: -.2px; }
+.header-sub   { font-size: 12px; color: var(--c400); margin-top: 1px; }
+
+/* ── Tab bar ──────────────────────────────────────────── */
+.tab-bar {
+  background: var(--c800); display: flex; overflow-x: auto;
+  padding: 0 16px; gap: 2px; scrollbar-width: none;
+}
+.tab-bar::-webkit-scrollbar { display: none; }
+.tab-btn {
+  background: none; border: none; color: #b8cbe8; cursor: pointer;
+  padding: 0 18px; height: 44px; font-size: 13.5px; font-weight: 500;
+  white-space: nowrap; border-bottom: 3px solid transparent;
+  transition: color .15s, border-color .15s;
+}
+.tab-btn:hover  { color: var(--white); }
+.tab-btn.active { color: var(--white); border-bottom-color: var(--c400); }
+
+/* ── Main layout ──────────────────────────────────────── */
+main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 24px; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── Cards & sections ────────────────────────────────── */
+.card {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: 10px; padding: 20px 24px; margin-bottom: 16px;
+}
+.card-title {
+  font-size: 14px; font-weight: 600; color: var(--c900);
+  text-transform: uppercase; letter-spacing: .6px;
+  margin-bottom: 16px; padding-bottom: 10px;
+  border-bottom: 2px solid var(--c50);
+}
+
+/* ── Form grid ────────────────────────────────────────── */
+.form-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+.form-grid-2 { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-group label { font-size: 12.5px; font-weight: 500; color: var(--text-light); }
+.form-group input, .form-group select {
+  height: 38px; padding: 0 10px; border: 1px solid var(--border);
+  border-radius: 6px; font-size: 14px; color: var(--text);
+  background: var(--white); transition: border-color .15s, box-shadow .15s;
+}
+.form-group input:focus, .form-group select:focus {
+  outline: none; border-color: var(--c600);
+  box-shadow: 0 0 0 3px rgba(47,95,168,.15);
+}
+.input-prefix { position: relative; }
+.input-prefix span {
+  position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+  color: var(--muted); font-size: 13px; pointer-events: none;
+}
+.input-prefix input { padding-left: 22px; }
+.input-suffix { position: relative; }
+.input-suffix span {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  color: var(--muted); font-size: 13px; pointer-events: none;
+}
+.input-suffix input { padding-right: 28px; }
+
+/* ── Strategy toggle rows ────────────────────────────── */
+.strategy-card {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: 10px; margin-bottom: 12px; overflow: hidden;
+}
+.strategy-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 18px; cursor: pointer; user-select: none;
+}
+.strategy-header:hover { background: #f8fafd; }
+.strategy-toggle {
+  width: 40px; height: 22px; border-radius: 11px;
+  background: #ccc; position: relative; flex-shrink: 0;
+  transition: background .2s; cursor: pointer;
+}
+.strategy-toggle::after {
+  content: ''; position: absolute; width: 18px; height: 18px;
+  border-radius: 9px; background: var(--white);
+  top: 2px; left: 2px; transition: left .2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,.2);
+}
+.strategy-toggle.on { background: var(--c600); }
+.strategy-toggle.on::after { left: 20px; }
+.strategy-label { font-weight: 600; font-size: 14px; flex: 1; }
+.strategy-badge {
+  font-size: 11px; padding: 2px 8px; border-radius: 10px;
+  background: var(--c50); color: var(--c800); font-weight: 500;
+}
+.strategy-body { padding: 4px 18px 18px; border-top: 1px solid var(--c50); }
+.strategy-body.hidden { display: none; }
+
+/* ── Lump sum / rate events list ─────────────────────── */
+.list-items { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+.list-item {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--c50); border-radius: 6px; padding: 8px 12px;
+}
+.list-item input {
+  height: 34px; padding: 0 8px; border: 1px solid var(--border);
+  border-radius: 5px; font-size: 13px; background: var(--white); flex: 1;
+}
+.list-item .input-prefix input { padding-left: 22px; }
+.list-item .input-suffix input { padding-right: 28px; }
+.list-item input:focus { outline: none; border-color: var(--c600); }
+.list-item label { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.btn-remove {
+  background: none; border: none; color: var(--danger);
+  cursor: pointer; font-size: 18px; line-height: 1;
+  padding: 0 4px; flex-shrink: 0;
+}
+.btn-add {
+  background: none; border: 1px dashed var(--c600); color: var(--c800);
+  border-radius: 6px; padding: 7px 14px; font-size: 13px; cursor: pointer;
+  font-weight: 500; transition: background .15s;
+}
+.btn-add:hover { background: var(--c50); }
+
+/* ── Buttons ──────────────────────────────────────────── */
+.btn-primary {
+  background: var(--c600); color: var(--white);
+  border: none; border-radius: 7px; padding: 11px 28px;
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  transition: background .15s; letter-spacing: .2px;
+}
+.btn-primary:hover { background: var(--c800); }
+.btn-secondary {
+  background: var(--white); color: var(--c800);
+  border: 1px solid var(--c600); border-radius: 7px;
+  padding: 10px 22px; font-size: 13.5px; font-weight: 500;
+  cursor: pointer; transition: background .15s;
+}
+.btn-secondary:hover { background: var(--c50); }
+.calc-bar {
+  display: flex; align-items: center; gap: 12px;
+  flex-wrap: wrap; padding-top: 8px;
+}
+.calc-bar-note { font-size: 12px; color: var(--muted); }
+
+/* ── Results ──────────────────────────────────────────── */
+.metric-grid {
+  display: grid; gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  margin-bottom: 20px;
+}
+.metric-card {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: 10px; padding: 18px 20px;
+}
+.metric-label { font-size: 12px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+.metric-value { font-size: 26px; font-weight: 700; color: var(--c900); line-height: 1.1; }
+.metric-sub   { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.metric-card.highlight { background: var(--c50); border-color: var(--c400); }
+.metric-card.highlight .metric-value { color: var(--c800); }
+
+.chart-wrap { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 16px; }
+.chart-title { font-size: 13px; font-weight: 600; color: var(--c900); margin-bottom: 14px; }
+.chart-canvas-wrap { position: relative; height: 260px; }
+
+.placeholder-msg {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; min-height: 200px; color: var(--muted);
+  gap: 10px; text-align: center;
+}
+.placeholder-msg svg { opacity: .3; }
+.placeholder-msg p { font-size: 14px; }
+.placeholder-msg small { font-size: 12px; }
+
+/* ── Schedule tab ─────────────────────────────────────── */
+.toggle-row {
+  display: flex; gap: 4px; background: var(--c50);
+  border-radius: 7px; padding: 4px; width: fit-content; margin-bottom: 16px;
+}
+.toggle-opt {
+  padding: 6px 16px; border-radius: 5px; cursor: pointer;
+  font-size: 13px; font-weight: 500; color: var(--text-light);
+  background: none; border: none; transition: all .15s;
+}
+.toggle-opt.active { background: var(--white); color: var(--c900); box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+
+.schedule-table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th {
+  background: var(--c900); color: var(--white);
+  padding: 10px 14px; text-align: right; font-weight: 600;
+  font-size: 12px; text-transform: uppercase; letter-spacing: .4px;
+  white-space: nowrap;
+}
+thead th:first-child { text-align: left; }
+tbody tr:nth-child(even) { background: var(--c50); }
+tbody td {
+  padding: 8px 14px; text-align: right; border-bottom: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+tbody td:first-child { text-align: left; font-weight: 500; }
+tfoot td { padding: 10px 14px; font-weight: 700; text-align: right; background: #e4ecf8; border-top: 2px solid var(--c400); }
+tfoot td:first-child { text-align: left; }
+
+/* ── Inline section dividers ──────────────────────────── */
+.section-divider {
+  font-size: 12px; font-weight: 600; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .6px;
+  margin: 18px 0 10px; padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── Loyalty-gap callout ──────────────────────────────── */
+.loyalty-callout {
+  background: var(--c50); border: 1px solid var(--c400);
+  border-radius: 10px; padding: 18px 22px; margin-bottom: 16px;
+}
+.loyalty-callout-title { font-size: 14px; font-weight: 700; color: var(--c900); margin-bottom: 8px; }
+.loyalty-callout-body { font-size: 13.5px; color: var(--text-light); line-height: 1.6; }
+.figure-source-note { font-size: 11.5px; color: var(--muted); margin-top: 8px; }
+
+/* ── Warning card (never-paid-off scenario) ───────────── */
+.warning-card {
+  background: #fdf1ef; border: 1px solid var(--danger);
+  border-radius: 10px; padding: 14px 20px; margin-bottom: 16px;
+  font-size: 13.5px; color: var(--danger); font-weight: 500;
+}
+
+/* ── Cross-promotion ───────────────────────────────────── */
+.cross-promo {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--white); border: 1px dashed var(--c600);
+  border-radius: 10px; padding: 16px 20px; margin-top: 8px;
+}
+.cross-promo .icon { font-size: 24px; }
+.cross-promo a { color: var(--c800); font-weight: 600; }
+
+/* ── Disclaimer / compliance footer ───────────────────── */
+.site-footer { max-width: 1100px; margin: 0 auto; padding: 0 16px 40px; }
+.disclaimer {
+  font-size: 12px; color: var(--muted); line-height: 1.5;
+  background: var(--c50); border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px 18px;
+}
+.disclaimer strong { color: var(--text); }
+
+/* ── Responsive ───────────────────────────────────────── */
+@media (max-width: 600px) {
+  header { padding: 0 14px; }
+  main   { padding: 16px 12px 16px; }
+  .metric-value { font-size: 22px; }
+}
+
+/* ── Util ─────────────────────────────────────────────── */
+.mt8  { margin-top: 8px; }
+.mt16 { margin-top: 16px; }
+.hidden { display: none !important; }
+.text-success { color: var(--c800); font-weight: 600; }
+.text-danger  { color: var(--danger); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══════════════════════════════════════════ -->
+<header>
+  <div class="logo-badge">MLS</div>
+  <div>
+    <div class="header-title">My Life Sorted</div>
+    <div class="header-sub">Credit Card Reduction Calculator</div>
+  </div>
+</header>
+
+<!-- ═══ TAB BAR ══════════════════════════════════════════ -->
+<div class="tab-bar" role="tablist">
+  <button class="tab-btn active" data-tab="setup"      role="tab">Card Setup</button>
+  <button class="tab-btn"        data-tab="strategies" role="tab">Strategies</button>
+  <button class="tab-btn"        data-tab="results"    role="tab">Results</button>
+  <button class="tab-btn"        data-tab="schedule"   role="tab">Schedule</button>
+</div>
+
+<main>
+
+<!-- ═══════════════════════════════════════════════════════
+     TAB 1 — CARD SETUP
+═══════════════════════════════════════════════════════════ -->
+<div id="tab-setup" class="tab-panel active">
+
+  <div class="card">
+    <div class="card-title">Card Details</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Card Balance</label>
+        <div class="input-prefix"><span>$</span>
+          <input type="number" id="card-balance" value="5000" min="0" step="100">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Annual Interest Rate (APR)</label>
+        <div class="input-suffix"><span>%</span>
+          <input type="number" id="card-apr" value="19.94" min="0" max="40" step="0.05">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Minimum Repayment — % of Balance</label>
+        <div class="input-suffix"><span>%</span>
+          <input type="number" id="min-percent" value="2.5" min="0" max="10" step="0.1">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Minimum Repayment — Fixed Floor</label>
+        <div class="input-prefix"><span>$</span>
+          <input type="number" id="min-floor" value="25" min="0" step="5">
+        </div>
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-top:14px;">
+      Most issuers charge whichever is greater — the percentage or the fixed floor. Check your latest
+      statement and adjust these two fields to match your own card exactly.
+    </p>
+  </div>
+
+  <!-- Rate change events -->
+  <div class="card">
+    <div class="card-title">Rate Change Events <span style="font-weight:400;color:var(--muted);font-size:12px;text-transform:none">(optional)</span></div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">
+      Model a known future APR change — e.g. your issuer's standard variable rate moving, independent of
+      any balance-transfer promotion below.
+    </p>
+    <div id="rate-events-list" class="list-items"></div>
+    <button class="btn-add" id="add-rate-event">+ Add Rate Change Event</button>
+  </div>
+
+  <!-- Calculate -->
+  <div class="calc-bar">
+    <button class="btn-primary" id="btn-calculate">Calculate</button>
+    <span class="calc-bar-note">Results appear in the Results tab</span>
+  </div>
+
+</div><!-- /tab-setup -->
+
+
+<!-- ═══════════════════════════════════════════════════════
+     TAB 2 — STRATEGIES
+═══════════════════════════════════════════════════════════ -->
+<div id="tab-strategies" class="tab-panel">
+
+  <div style="font-size:13px;color:var(--muted);margin-bottom:14px;">
+    Toggle strategies on or off, then click Calculate (or use the button below).
+    All active strategies are combined in the Results tab.
+  </div>
+
+  <!-- 1. Extra fixed payment -->
+  <div class="strategy-card">
+    <div class="strategy-header" data-strategy="extra">
+      <div class="strategy-toggle on" id="toggle-extra"></div>
+      <div class="strategy-label">Extra Fixed Payment</div>
+      <div class="strategy-badge">Primary</div>
+    </div>
+    <div class="strategy-body" id="body-extra">
+      <div class="form-grid mt8">
+        <div class="form-group">
+          <label>Extra Amount (per month)</label>
+          <div class="input-prefix"><span>$</span>
+            <input type="number" id="extra-amount" value="100" min="0" step="10">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Lump sums -->
+  <div class="strategy-card">
+    <div class="strategy-header" data-strategy="lump">
+      <div class="strategy-toggle on" id="toggle-lump"></div>
+      <div class="strategy-label">Lump Sum Payments</div>
+      <div class="strategy-badge">Primary</div>
+    </div>
+    <div class="strategy-body" id="body-lump">
+      <div id="lump-list" class="list-items mt8"></div>
+      <button class="btn-add" id="add-lump">+ Add Lump Sum</button>
+    </div>
+  </div>
+
+  <!-- 3. Balance transfer / promo rate -->
+  <div class="strategy-card">
+    <div class="strategy-header" data-strategy="promo">
+      <div class="strategy-toggle" id="toggle-promo"></div>
+      <div class="strategy-label">Balance Transfer / Promotional Rate</div>
+      <div class="strategy-badge" style="background:#eef4fa;">Optional</div>
+    </div>
+    <div class="strategy-body hidden" id="body-promo">
+      <div class="form-grid mt8 form-grid-2">
+        <div class="form-group">
+          <label>Promotional Rate</label>
+          <div class="input-suffix"><span>%</span>
+            <input type="number" id="promo-rate" value="0" min="0" max="40" step="0.05">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Promotional Period</label>
+          <div class="input-suffix"><span>months</span>
+            <input type="number" id="promo-months" value="6" min="1" max="36" step="1">
+          </div>
+        </div>
+      </div>
+      <p style="font-size:12px;color:var(--muted);margin-top:8px;">
+        Common with balance-transfer offers. Reverts to your card's standard APR (set on the Card Setup
+        tab) once the promotional period ends.
+      </p>
+    </div>
+  </div>
+
+  <div class="calc-bar mt16">
+    <button class="btn-primary" id="btn-run-all">Run All Scenarios &amp; View Results</button>
+    <button class="btn-secondary" id="btn-calculate-2">Calculate</button>
+  </div>
+
+</div><!-- /tab-strategies -->
+
+
+<!-- ═══════════════════════════════════════════════════════
+     TAB 3 — RESULTS
+═══════════════════════════════════════════════════════════ -->
+<div id="tab-results" class="tab-panel">
+
+  <!-- Never-paid-off warning -->
+  <div id="never-paid-off-warning" class="warning-card hidden">
+    ⚠️ At the minimum payment only, this balance may never be fully repaid — the minimum payment doesn't
+    cover the interest being charged each month.
+  </div>
+
+  <!-- Headline metrics -->
+  <div class="metric-grid" id="metrics-grid">
+    <div class="metric-card">
+      <div class="metric-label">Min Repayment</div>
+      <div class="metric-value" id="m-repayment">—</div>
+      <div class="metric-sub">per month, this month</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Total Interest (Minimum Only)</div>
+      <div class="metric-value" id="m-total-interest">—</div>
+      <div class="metric-sub" id="m-total-interest-sub">if you only ever pay the minimum</div>
+    </div>
+    <div class="metric-card highlight">
+      <div class="metric-label">Interest Saved</div>
+      <div class="metric-value" id="m-interest-saved">—</div>
+      <div class="metric-sub">with active strategies</div>
+    </div>
+    <div class="metric-card highlight">
+      <div class="metric-label">Debt-Free Date</div>
+      <div class="metric-value" id="m-debt-free">—</div>
+      <div class="metric-sub" id="m-debt-free-sub">with strategies</div>
+    </div>
+  </div>
+
+  <!-- What loyalty could be costing you -->
+  <div class="loyalty-callout">
+    <div class="loyalty-callout-title">What loyalty could be costing you</div>
+    <div class="loyalty-callout-body" id="loyalty-callout-body">Calculate to see this estimate.</div>
+  </div>
+
+  <!-- Balance over time chart -->
+  <div class="chart-wrap">
+    <div class="chart-title">Balance Over Time</div>
+    <div class="chart-canvas-wrap">
+      <canvas id="chart-balance"></canvas>
+    </div>
+    <div id="placeholder-balance" class="placeholder-msg">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      <p>Run a calculation to see balance projection</p>
+    </div>
+  </div>
+
+  <!-- Strategy savings breakdown -->
+  <div class="chart-wrap">
+    <div class="chart-title">Strategy Savings Breakdown</div>
+    <div class="chart-canvas-wrap">
+      <canvas id="chart-breakdown"></canvas>
+    </div>
+    <div id="placeholder-breakdown" class="placeholder-msg">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/></svg>
+      <p>Enable strategies and calculate to compare savings</p>
+    </div>
+  </div>
+
+  <!-- Annual interest comparison -->
+  <div class="chart-wrap">
+    <div class="chart-title">Annual Interest</div>
+    <div class="chart-canvas-wrap">
+      <canvas id="chart-annual"></canvas>
+    </div>
+    <div id="placeholder-annual" class="placeholder-msg">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      <p>Calculate to see annual interest comparison</p>
+    </div>
+  </div>
+
+  <!-- No-results placeholder -->
+  <div id="results-placeholder" class="card">
+    <div class="placeholder-msg" style="min-height:160px;">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+        <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
+      </svg>
+      <p>No results yet</p>
+      <small>Set up your card and click Calculate</small>
+    </div>
+  </div>
+
+  <!-- Cross-promotion -->
+  <div class="cross-promo">
+    <div class="icon">🏠</div>
+    <div>
+      Got a mortgage too? <a href="../Mortgage%20Reduction%20Calculator/mortgage-calculator.html">Try our Mortgage Reduction Calculator</a>
+      <!-- Placeholder relative path — update once both calculators are hosted at a shared URL. -->
+    </div>
+  </div>
+
+</div><!-- /tab-results -->
+
+
+<!-- ═══════════════════════════════════════════════════════
+     TAB 4 — SCHEDULE
+═══════════════════════════════════════════════════════════ -->
+<div id="tab-schedule" class="tab-panel">
+
+  <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:16px;">
+    <div class="toggle-row" id="sched-view-toggle">
+      <button class="toggle-opt active" data-sview="base">Minimum Only</button>
+      <button class="toggle-opt"        data-sview="strategies">With Strategies</button>
+    </div>
+    <div class="toggle-row" id="sched-period-toggle">
+      <button class="toggle-opt active" data-speriod="annual">Annual Summary</button>
+      <button class="toggle-opt"        data-speriod="period">Monthly Detail</button>
+    </div>
+  </div>
+
+  <div id="schedule-placeholder" class="card">
+    <div class="placeholder-msg" style="min-height:160px;">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+        <path d="M3 3h18v4H3z"/><path d="M3 10h18M3 17h18"/><path d="M8 7v14M16 7v14"/>
+      </svg>
+      <p>No schedule yet</p>
+      <small>Calculate a card balance to view the repayment schedule</small>
+    </div>
+  </div>
+
+  <div id="schedule-table-wrap" class="schedule-table-wrap hidden">
+    <table id="schedule-table">
+      <thead id="schedule-thead"></thead>
+      <tbody id="schedule-tbody"></tbody>
+      <tfoot id="schedule-tfoot"></tfoot>
+    </table>
+  </div>
+
+</div><!-- /tab-schedule -->
+
+</main><!-- /main -->
+
+<!-- ═══ COMPLIANCE FOOTER ════════════════════════════════ -->
+<footer class="site-footer">
+  <div class="disclaimer">
+    <strong>Disclaimer.</strong> This information is factual and general in nature. It does not take into
+    account your personal objectives, financial situation or needs, and is not personal financial or credit
+    advice. It does not recommend or promote any specific bank, card, or lender. The "loyalty could be
+    costing you" estimate uses a national average figure from a cited source (see the Results tab) — it
+    describes typical outcomes across the market, not a promise about your own situation, and individual
+    results will vary. Speak with a licensed financial adviser or credit representative before switching
+    products or making a borrowing decision.
+  </div>
+</footer>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════════
+// CALCULATION ENGINE (mirrors tests.js)
+// ═══════════════════════════════════════════════════════════
+
+// ── Calendar-day helpers for ACT/365 daily-accrual interest ─────────
+// Interest accrues daily on the outstanding balance (annual rate ÷ 365)
+// using the actual number of days in each calendar month, mirroring
+// the same convention used by the Mortgage Reduction Calculator's
+// engine, rather than a flat rate/12 per month. All date math uses
+// UTC to avoid DST-related day-count anomalies.
+function toUTCDateOnly(date) {
+  return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+}
+function addMonthsUTC(date, n) {
+  const y = date.getUTCFullYear();
+  const m = date.getUTCMonth() + n;
+  const day = date.getUTCDate();
+  const daysInTargetMonth = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  return new Date(Date.UTC(y, m, Math.min(day, daysInTargetMonth)));
+}
+function daysBetween(a, b) {
+  return Math.round((b.getTime() - a.getTime()) / 86_400_000);
+}
+
+// Revolving-balance amortisation for a credit card.
+// Each period: minimum payment = max(balance × minPercent, minFloor);
+// actual payment = minimum + any extra/strategy payment; interest is
+// charged on the opening balance for the period at the then-current
+// rate (base APR, overridden by any rate event that has occurred by
+// that month, overridden again by a promo rate while its window is
+// still open — a deliberate simplification: a promo rate always wins
+// over a rate event for the months it's active, rather than modelling
+// both interacting).
+// Returns { totalInterest, termMonths, schedule, neverPaidOff }.
+// `neverPaidOff` is true if the balance still isn't repaid after the
+// safety cap (50 years) — this happens for real when the minimum
+// payment doesn't cover the interest being charged (negative
+// amortisation), which is disclosed rather than hidden.
+// opts:
+//   minPercent    — minimum repayment as a fraction of balance
+//   minFloor      — minimum repayment fixed-dollar floor
+//   extraMonthly  — extra repayment per month (on top of minimum)
+//   lumpSums      — [{ afterMonth, amount }] applied at the start of that month
+//   rateEvents    — [{ afterMonth, rate }] APR changes, latest applicable wins
+//   promo         — { rate, months } promotional rate for the first N months
+//   startDate     — calendar date the schedule starts (default: today)
+//   buildSchedule — if true, populate the returned `schedule` array
+function amortCard(balance, annualRate, opts = {}) {
+  const {
+    minPercent = 0.025, minFloor = 25,
+    extraMonthly = 0, lumpSums = [], rateEvents = [],
+    promo, startDate,
+  } = opts;
+
+  const start = toUTCDateOnly(startDate ? new Date(startDate) : new Date());
+  const MAX_MONTHS = 600; // 50-year safety cap; also flags "never paid off"
+
+  let bal = balance, totalInterest = 0, month = 0;
+  const schedule = [];
+
+  while (bal > 0.005 && month < MAX_MONTHS) {
+    month++;
+
+    for (const ls of lumpSums) {
+      if (month === ls.afterMonth) bal = Math.max(0, bal - ls.amount);
+    }
+    if (bal <= 0.005) break;
+
+    let rate = annualRate;
+    for (const re of rateEvents) {
+      if (month >= re.afterMonth) rate = re.rate;
+    }
+    if (promo && month <= promo.months) rate = promo.rate;
+
+    const periodStart = addMonthsUTC(start, month - 1);
+    const periodEnd = addMonthsUTC(start, month);
+    const days = daysBetween(periodStart, periodEnd);
+    const interest = bal * (rate / 365) * days;
+
+    const minPayment = Math.max(bal * minPercent, minFloor);
+    const payment = minPayment + extraMonthly;
+    const principal = Math.min(bal, Math.max(0, payment - interest));
+
+    bal = Math.max(0, bal - principal);
+    totalInterest += interest;
+
+    if (buildScheduleFlag(opts)) {
+      schedule.push({ month, interest, principal, balance: bal, cumInterest: totalInterest, days, rate: rate * 100 });
+    }
+  }
+
+  return { totalInterest: Math.round(totalInterest), termMonths: month, schedule, neverPaidOff: bal > 0.005 };
+}
+function buildScheduleFlag(opts) { return !!opts.buildSchedule; }
+
+// ═══════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════
+
+const fmt$ = n => '$' + Math.round(n).toLocaleString('en-AU');
+
+function termLabel(months) {
+  const y = Math.floor(months / 12), m = months % 12;
+  return m === 0 ? `${y}y` : `${y}y ${m}m`;
+}
+
+function cardFreeDate(termMonths) {
+  const d = new Date();
+  d.setMonth(d.getMonth() + termMonths);
+  return d.toLocaleDateString('en-AU', { month: 'long', year: 'numeric' });
+}
+
+function buildAnnualInterest(schedule, years = 10) {
+  const result = [];
+  for (let y = 1; y <= years; y++) {
+    const start = (y - 1) * 12;
+    const end   = y * 12;
+    const interest = schedule
+      .filter(s => s.month > start && s.month <= end)
+      .reduce((sum, s) => sum + s.interest, 0);
+    result.push({ year: y, interest: Math.round(interest) });
+  }
+  return result;
+}
+
+// ── Loyalty-gap figure ───────────────────────────────────────────
+// Canonical source: My Life Sorted Budget app, lib/figures/config.ts
+// → CREDIT_CARD_LOYALTY_FIGURE (Canstar survey of 2,029 cardholders +
+// RBA data to Dec 2025, published March 2026), also shown on the
+// Budget app's /methodology page. Duplicated here because this is a
+// standalone static file with no shared import — if the canonical
+// figure is ever updated, this copy needs updating by hand too.
+const LOYALTY_GAP = {
+  averageRatePercent: 18.67,
+  lowRateBenchmarkPercent: 10,
+  ratePremiumPoints: 8.67,
+  source: 'Canstar (survey of 2,029 cardholders) & RBA data to Dec 2025',
+  sourceDate: 'March 2026',
+};
+
+// ═══════════════════════════════════════════════════════════
+// TAB SWITCHING
+// ═══════════════════════════════════════════════════════════
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ═══════════════════════════════════════════════════════════
+// STRATEGY TOGGLES
+// ═══════════════════════════════════════════════════════════
+
+const strategyState = { extra: true, lump: true, promo: false };
+
+document.querySelectorAll('.strategy-header').forEach(header => {
+  header.addEventListener('click', () => {
+    const key = header.dataset.strategy;
+    strategyState[key] = !strategyState[key];
+    const toggle = document.getElementById('toggle-' + key);
+    const body   = document.getElementById('body-' + key);
+    toggle.classList.toggle('on', strategyState[key]);
+    body.classList.toggle('hidden', !strategyState[key]);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════
+// LUMP SUM LIST
+// ═══════════════════════════════════════════════════════════
+
+let lumpCounter = 0;
+
+function addLumpRow(afterMonth = 6, amount = 1000) {
+  lumpCounter++;
+  const id = lumpCounter;
+  const row = document.createElement('div');
+  row.className = 'list-item';
+  row.dataset.lumpId = id;
+  row.innerHTML = `
+    <label>After month</label>
+    <input type="number" class="lump-month" value="${afterMonth}" min="1" max="600" step="1" style="max-width:70px">
+    <label>Amount</label>
+    <div class="input-prefix" style="flex:1"><span>$</span>
+      <input type="number" class="lump-amount" value="${amount}" min="0" step="100">
+    </div>
+    <button class="btn-remove" title="Remove">×</button>
+  `;
+  row.querySelector('.btn-remove').addEventListener('click', () => row.remove());
+  document.getElementById('lump-list').appendChild(row);
+}
+
+document.getElementById('add-lump').addEventListener('click', () => addLumpRow());
+addLumpRow(); // default one row
+
+function getLumpSums() {
+  return [...document.querySelectorAll('#lump-list .list-item')].map(row => ({
+    afterMonth: +row.querySelector('.lump-month').value,
+    amount:     +row.querySelector('.lump-amount').value,
+  }));
+}
+
+// ═══════════════════════════════════════════════════════════
+// RATE EVENTS LIST
+// ═══════════════════════════════════════════════════════════
+
+let rateEventCounter = 0;
+
+function addRateEventRow(afterMonth = 18, rate = 24.99) {
+  rateEventCounter++;
+  const id = rateEventCounter;
+  const row = document.createElement('div');
+  row.className = 'list-item';
+  row.dataset.eventId = id;
+  row.innerHTML = `
+    <label>After month</label>
+    <input type="number" class="re-month" value="${afterMonth}" min="1" max="600" step="1" style="max-width:70px">
+    <label>New APR</label>
+    <div class="input-suffix" style="flex:1"><span>%</span>
+      <input type="number" class="re-rate" value="${rate}" min="0" max="40" step="0.05">
+    </div>
+    <button class="btn-remove" title="Remove">×</button>
+  `;
+  row.querySelector('.btn-remove').addEventListener('click', () => row.remove());
+  document.getElementById('rate-events-list').appendChild(row);
+}
+
+document.getElementById('add-rate-event').addEventListener('click', () => addRateEventRow());
+
+function getRateEvents() {
+  return [...document.querySelectorAll('#rate-events-list .list-item')].map(row => ({
+    afterMonth: +row.querySelector('.re-month').value,
+    rate:       +row.querySelector('.re-rate').value / 100,
+  }));
+}
+
+// ═══════════════════════════════════════════════════════════
+// SCHEDULE TOGGLES
+// ═══════════════════════════════════════════════════════════
+
+let schedView = 'base', schedPeriod = 'annual';
+
+document.getElementById('sched-view-toggle').addEventListener('click', e => {
+  const btn = e.target.closest('.toggle-opt');
+  if (!btn) return;
+  document.querySelectorAll('#sched-view-toggle .toggle-opt').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  schedView = btn.dataset.sview;
+  renderSchedule();
+});
+
+document.getElementById('sched-period-toggle').addEventListener('click', e => {
+  const btn = e.target.closest('.toggle-opt');
+  if (!btn) return;
+  document.querySelectorAll('#sched-period-toggle .toggle-opt').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  schedPeriod = btn.dataset.speriod;
+  renderSchedule();
+});
+
+// ═══════════════════════════════════════════════════════════
+// CHART INSTANCES
+// ═══════════════════════════════════════════════════════════
+
+const charts = {};
+
+function destroyChart(key) {
+  if (charts[key]) { charts[key].destroy(); delete charts[key]; }
+}
+
+const COLORS = {
+  base:  '#2F5FA8',
+  strat: '#14284F',
+  hike:  '#c0392b',
+};
+
+function makeLineChart(canvasId, datasets, labels, yPrefix = '$') {
+  destroyChart(canvasId);
+  const ctx = document.getElementById(canvasId).getContext('2d');
+  charts[canvasId] = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'top', labels: { boxWidth: 12, font: { size: 12 } } },
+        tooltip: {
+          callbacks: {
+            label: ctx => `  ${ctx.dataset.label}: ${yPrefix}${Math.round(ctx.raw).toLocaleString('en-AU')}`,
+          },
+        },
+      },
+      scales: {
+        y: {
+          ticks: { callback: v => yPrefix + Math.round(v / 1000) + 'k', font: { size: 11 } },
+          grid: { color: '#e4ecf8' },
+        },
+        x: { ticks: { font: { size: 11 } }, grid: { display: false } },
+      },
+    },
+  });
+}
+
+function makeBarChart(canvasId, datasets, labels) {
+  destroyChart(canvasId);
+  const ctx = document.getElementById(canvasId).getContext('2d');
+  charts[canvasId] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => `  Saved: $${Math.round(ctx.raw).toLocaleString('en-AU')}`,
+          },
+        },
+      },
+      scales: {
+        x: {
+          ticks: { callback: v => '$' + Math.round(v / 1000) + 'k', font: { size: 11 } },
+          grid: { color: '#e4ecf8' },
+        },
+        y: { ticks: { font: { size: 12 } }, grid: { display: false } },
+      },
+    },
+  });
+}
+
+function makeGroupedBarChart(canvasId, datasets, labels) {
+  destroyChart(canvasId);
+  const ctx = document.getElementById(canvasId).getContext('2d');
+  charts[canvasId] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top', labels: { boxWidth: 12, font: { size: 12 } } },
+        tooltip: {
+          callbacks: {
+            label: ctx => `  ${ctx.dataset.label}: $${Math.round(ctx.raw).toLocaleString('en-AU')}`,
+          },
+        },
+      },
+      scales: {
+        y: {
+          ticks: { callback: v => '$' + Math.round(v / 1000) + 'k', font: { size: 11 } },
+          grid: { color: '#e4ecf8' },
+        },
+        x: { ticks: { font: { size: 11 } }, grid: { display: false } },
+      },
+    },
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// LAST RESULTS STORE (for schedule tab)
+// ═══════════════════════════════════════════════════════════
+
+let lastResults = null;
+
+// ═══════════════════════════════════════════════════════════
+// READ INPUTS
+// ═══════════════════════════════════════════════════════════
+
+function readInputs() {
+  const inputs = {};
+  inputs.balance    = +document.getElementById('card-balance').value;
+  inputs.apr        = +document.getElementById('card-apr').value / 100;
+  inputs.minPercent = +document.getElementById('min-percent').value / 100;
+  inputs.minFloor   = +document.getElementById('min-floor').value;
+  inputs.rateEvents = getRateEvents();
+
+  inputs.strats = {
+    extra: {
+      on: strategyState.extra,
+      amount: +document.getElementById('extra-amount').value,
+    },
+    lump: {
+      on: strategyState.lump,
+      items: getLumpSums(),
+    },
+    promo: {
+      on: strategyState.promo,
+      rate:   +document.getElementById('promo-rate').value / 100,
+      months: +document.getElementById('promo-months').value,
+    },
+  };
+
+  return inputs;
+}
+
+// ═══════════════════════════════════════════════════════════
+// STRATEGY OPTS BUILDER
+// ═══════════════════════════════════════════════════════════
+
+function buildStratOpts(inp) {
+  const s = inp.strats;
+  const extraMonthly = s.extra.on ? s.extra.amount : 0;
+  const lumpSums = s.lump.on ? s.lump.items : [];
+  const promo = s.promo.on ? { rate: s.promo.rate, months: s.promo.months } : undefined;
+  return { extraMonthly, lumpSums, promo };
+}
+
+// ═══════════════════════════════════════════════════════════
+// MAIN CALCULATE
+// ═══════════════════════════════════════════════════════════
+
+function calculate() {
+  const inp  = readInputs();
+  const opts = buildStratOpts(inp);
+  const { balance, apr, minPercent, minFloor, rateEvents } = inp;
+
+  const baseResult = amortCard(balance, apr, { minPercent, minFloor, rateEvents, buildSchedule: true });
+  const stratResult = amortCard(balance, apr, { minPercent, minFloor, rateEvents, ...opts, buildSchedule: true });
+
+  lastResults = { inp, opts, baseResult, stratResult, balance, apr };
+
+  renderResults(inp, baseResult, stratResult, balance, apr);
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER RESULTS
+// ═══════════════════════════════════════════════════════════
+
+function renderResults(inp, base, strat, balance, apr) {
+  const saved = base.totalInterest - strat.totalInterest;
+  const firstMinPayment = Math.max(balance * inp.minPercent, inp.minFloor);
+
+  document.getElementById('m-repayment').textContent = fmt$(firstMinPayment);
+  document.getElementById('m-total-interest').textContent = fmt$(base.totalInterest);
+  document.getElementById('m-total-interest-sub').textContent = base.neverPaidOff
+    ? 'if you only ever pay the minimum — may never be fully repaid'
+    : 'if you only ever pay the minimum';
+  document.getElementById('m-interest-saved').textContent = fmt$(saved);
+
+  if (strat.neverPaidOff) {
+    document.getElementById('m-debt-free').textContent = '50+ years';
+    document.getElementById('m-debt-free-sub').textContent = 'still not repaid at this rate';
+  } else {
+    document.getElementById('m-debt-free').textContent = cardFreeDate(strat.termMonths);
+    document.getElementById('m-debt-free-sub').textContent = termLabel(strat.termMonths) + ' remaining';
+  }
+
+  document.getElementById('never-paid-off-warning').classList.toggle('hidden', !base.neverPaidOff);
+
+  document.getElementById('results-placeholder').classList.add('hidden');
+
+  // ── Balance chart ────────────────────────────────────────
+  const maxYrs = Math.min(50, Math.ceil(Math.max(base.termMonths, strat.termMonths) / 12));
+  const yearLabels = Array.from({ length: maxYrs + 1 }, (_, i) => `Yr ${i}`);
+
+  function yearlyBal(schedule) {
+    return Array.from({ length: maxYrs + 1 }, (_, i) => {
+      const m = i * 12;
+      if (m === 0) return balance;
+      const entry = schedule.filter(s => s.month <= m).pop();
+      return entry ? Math.max(0, entry.balance) : 0;
+    });
+  }
+
+  document.getElementById('placeholder-balance').classList.add('hidden');
+  makeLineChart('chart-balance', [
+    { label: 'Minimum only',   data: yearlyBal(base.schedule),  borderColor: COLORS.base,  backgroundColor: 'rgba(47,95,168,.08)',  borderWidth: 2, fill: false, tension: 0.3, pointRadius: 0 },
+    { label: 'With strategies', data: yearlyBal(strat.schedule), borderColor: COLORS.strat, backgroundColor: 'rgba(20,40,79,.08)',   borderWidth: 2, fill: false, tension: 0.3, pointRadius: 0 },
+  ], yearLabels);
+
+  // ── Strategy breakdown chart ─────────────────────────────
+  document.getElementById('placeholder-breakdown').classList.add('hidden');
+  renderBreakdownChart(inp, base, balance, apr);
+
+  // ── Annual interest chart ────────────────────────────────
+  document.getElementById('placeholder-annual').classList.add('hidden');
+  const yrs10 = Math.min(10, Math.max(1, Math.ceil(base.termMonths / 12)));
+  const annLabels = Array.from({ length: yrs10 }, (_, i) => `Year ${i + 1}`);
+  const baseAnn  = buildAnnualInterest(base.schedule, yrs10).map(r => r.interest);
+  const stratAnn = buildAnnualInterest(strat.schedule, yrs10).map(r => r.interest);
+
+  makeGroupedBarChart('chart-annual', [
+    { label: 'Minimum only',   data: baseAnn,  backgroundColor: COLORS.base,  borderRadius: 3 },
+    { label: 'With strategies', data: stratAnn, backgroundColor: COLORS.strat, borderRadius: 3 },
+  ], annLabels);
+
+  renderLoyaltyCallout(balance);
+  renderSchedule();
+}
+
+// ── Individual strategy savings breakdown ────────────────
+
+function renderBreakdownChart(inp, base, balance, apr) {
+  const s = inp.strats;
+  const savedResults = [];
+
+  const run = extra => amortCard(balance, apr, {
+    minPercent: inp.minPercent, minFloor: inp.minFloor, rateEvents: inp.rateEvents, ...extra,
+  }).totalInterest;
+
+  if (s.extra.on) {
+    savedResults.push({ label: 'Extra Payment', saved: base.totalInterest - run({ extraMonthly: s.extra.amount }) });
+  }
+  if (s.lump.on && s.lump.items.length) {
+    savedResults.push({ label: 'Lump Sums', saved: base.totalInterest - run({ lumpSums: s.lump.items }) });
+  }
+  if (s.promo.on) {
+    savedResults.push({ label: 'Balance Transfer', saved: base.totalInterest - run({ promo: { rate: s.promo.rate, months: s.promo.months } }) });
+  }
+
+  if (!savedResults.length) {
+    document.getElementById('placeholder-breakdown').classList.remove('hidden');
+    return;
+  }
+
+  savedResults.sort((a, b) => b.saved - a.saved);
+
+  makeBarChart('chart-breakdown',
+    [{ data: savedResults.map(r => Math.max(0, r.saved)), backgroundColor: COLORS.base, borderRadius: 4 }],
+    savedResults.map(r => r.label),
+  );
+}
+
+// ── Loyalty-gap callout ───────────────────────────────────
+
+function renderLoyaltyCallout(balance) {
+  const extraCost = balance * (LOYALTY_GAP.ratePremiumPoints / 100);
+  document.getElementById('loyalty-callout-body').innerHTML = `
+    Cardholders who've never negotiated a better rate or switched cards pay, on average,
+    <strong>${LOYALTY_GAP.averageRatePercent}%</strong> — about
+    <strong>${LOYALTY_GAP.ratePremiumPoints} percentage points</strong> above the roughly
+    <strong>${LOYALTY_GAP.lowRateBenchmarkPercent}%</strong> that low-rate cards on the market charge.
+    On a ${fmt$(balance)} balance, that gap alone is worth roughly
+    <strong>${fmt$(extraCost)}/yr</strong>.
+    <div class="figure-source-note">
+      Source: ${LOYALTY_GAP.source}, ${LOYALTY_GAP.sourceDate}. This is a national average, not a quote
+      for any specific bank or card — your own rate and situation will differ.
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER SCHEDULE
+// ═══════════════════════════════════════════════════════════
+
+function renderSchedule() {
+  if (!lastResults) return;
+  const { baseResult, stratResult } = lastResults;
+  const result = schedView === 'base' ? baseResult : stratResult;
+  const sched  = result.schedule;
+  if (!sched || sched.length === 0) return;
+
+  document.getElementById('schedule-placeholder').classList.add('hidden');
+  document.getElementById('schedule-table-wrap').classList.remove('hidden');
+
+  const thead = document.getElementById('schedule-thead');
+  thead.innerHTML = `<tr>
+    <th>${schedPeriod === 'annual' ? 'Year' : 'Month'}</th>
+    <th>Payment</th><th>Principal</th><th>Interest</th>
+    <th>Balance</th><th>Cum. Interest</th>
+  </tr>`;
+
+  const tbody = document.getElementById('schedule-tbody');
+  tbody.innerHTML = '';
+
+  let rows;
+  if (schedPeriod === 'annual') {
+    const maxYear = Math.ceil(result.termMonths / 12);
+    rows = Array.from({ length: maxYear }, (_, i) => {
+      const y = i + 1;
+      const monthsInYear = sched.filter(s => s.month > (y - 1) * 12 && s.month <= y * 12);
+      const pay  = monthsInYear.reduce((s, r) => s + r.interest + r.principal, 0);
+      const prin = monthsInYear.reduce((s, r) => s + r.principal, 0);
+      const int  = monthsInYear.reduce((s, r) => s + r.interest, 0);
+      const last = monthsInYear[monthsInYear.length - 1] || sched[sched.length - 1];
+      return { period: y, pay, prin, int, balance: last?.balance || 0, cumInterest: last?.cumInterest || 0 };
+    });
+  } else {
+    rows = sched.map(r => ({
+      period: r.month,
+      pay: r.interest + r.principal,
+      prin: r.principal,
+      int: r.interest,
+      balance: r.balance,
+      cumInterest: r.cumInterest,
+    }));
+  }
+
+  const frag = document.createDocumentFragment();
+  rows.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${r.period}</td>
+      <td>${fmt$(r.pay)}</td>
+      <td>${fmt$(r.prin)}</td>
+      <td>${fmt$(r.int)}</td>
+      <td>${fmt$(r.balance)}</td>
+      <td>${fmt$(r.cumInterest)}</td>
+    `;
+    frag.appendChild(tr);
+  });
+  tbody.appendChild(frag);
+
+  const total = rows.reduce((a, r) => ({
+    pay: a.pay + r.pay, prin: a.prin + r.prin, int: a.int + r.int,
+  }), { pay: 0, prin: 0, int: 0 });
+  document.getElementById('schedule-tfoot').innerHTML = `<tr>
+    <td>Total</td>
+    <td>${fmt$(total.pay)}</td>
+    <td>${fmt$(total.prin)}</td>
+    <td>${fmt$(total.int)}</td>
+    <td>—</td><td>—</td>
+  </tr>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// EVENT WIRING
+// ═══════════════════════════════════════════════════════════
+
+function calculateAndShowResults() {
+  calculate();
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelector('[data-tab="results"]').classList.add('active');
+  document.getElementById('tab-results').classList.add('active');
+}
+
+document.getElementById('btn-calculate').addEventListener('click', calculateAndShowResults);
+document.getElementById('btn-calculate-2').addEventListener('click', calculateAndShowResults);
+document.getElementById('btn-run-all').addEventListener('click', calculateAndShowResults);
+
+</script>
+</body>
+</html>
