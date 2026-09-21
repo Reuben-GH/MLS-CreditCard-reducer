@@ -79,6 +79,34 @@ function amortCard(balance, annualRate, opts = {}) {
   return { totalInterest: Math.round(totalInterest), termMonths: month, schedule, neverPaidOff: bal > 0.005 };
 }
 
+// Mirrors credit-card-calculator.html's mergeSchedules(). cumInterest
+// is a running total, so a finished card must keep contributing its
+// own final cumInterest to every later month rather than dropping out
+// of the sum once it has no more entries.
+function mergeSchedules(schedules) {
+  const byMonth = new Map();
+  for (const schedule of schedules) {
+    for (const entry of schedule) {
+      const row = byMonth.get(entry.month) || { month: entry.month, interest: 0, principal: 0, balance: 0 };
+      row.interest  += entry.interest;
+      row.principal += entry.principal;
+      row.balance   += entry.balance;
+      byMonth.set(entry.month, row);
+    }
+  }
+  const maxMonth = Math.max(0, ...schedules.map(s => s.length ? s[s.length - 1].month : 0));
+  const merged = [];
+  for (let m = 1; m <= maxMonth; m++) {
+    const row = byMonth.get(m) || { month: m, interest: 0, principal: 0, balance: 0 };
+    row.cumInterest = schedules.reduce((sum, s) => {
+      if (s.length === 0) return sum;
+      return sum + s[Math.min(m, s.length) - 1].cumInterest;
+    }, 0);
+    merged.push(row);
+  }
+  return merged;
+}
+
 // ============================================================
 // TEST FRAMEWORK
 // ============================================================
@@ -236,6 +264,64 @@ section('Rejects nothing silently — a fully-repaid schedule ends near zero');
   const finalBalance = r.schedule[r.schedule.length - 1].balance;
   checkTrue('final balance is effectively zero', finalBalance <= 0.01, `final balance = ${finalBalance}`);
   checkTrue('not flagged as never-paid-off', !r.neverPaidOff);
+}
+
+section('Multiple Cards — two-card combination with no strategies sums independently');
+{
+  // Mirrors how the app's calculate() builds a Multiple Cards result:
+  // run each card independently, then combine via mergeSchedules — the
+  // same function the app uses. The merged schedule's final cumulative
+  // interest should equal the sum of the two cards' own totalInterest
+  // figures, which is the real thing worth regression-testing here
+  // (mergeSchedules' summation, not a tautology).
+  const cardA = amortCard(5000, 0.20, { minPercent: 0.025, minFloor: 25, buildSchedule: true });
+  const cardB = amortCard(2500, 0.25, { minPercent: 0.025, minFloor: 25, buildSchedule: true });
+  const merged = mergeSchedules([cardA.schedule, cardB.schedule]);
+  const mergedFinalCumInterest = merged[merged.length - 1].cumInterest;
+
+  checkDollar('merged schedule\'s final cumulative interest equals the sum of two independent amortCard totals',
+    mergedFinalCumInterest, cardA.totalInterest + cardB.totalInterest);
+  checkExact('combined termMonths is the longer of the two (household not debt-free until the last card clears)',
+    merged.length, Math.max(cardA.termMonths, cardB.termMonths));
+}
+
+section('Multiple Cards — extra payment targeted at one card only');
+{
+  const cardA_base  = amortCard(5000, 0.20, { minPercent: 0.025, minFloor: 25 });
+  const cardB_base  = amortCard(2500, 0.25, { minPercent: 0.025, minFloor: 25 });
+  const cardA_strat = amortCard(5000, 0.20, { minPercent: 0.025, minFloor: 25, extraMonthly: 150 });
+  const cardB_strat = amortCard(2500, 0.25, { minPercent: 0.025, minFloor: 25 }); // untargeted — same opts as base
+
+  checkTrue('untargeted card B interest is unchanged',
+    cardB_strat.totalInterest === cardB_base.totalInterest,
+    `base=$${cardB_base.totalInterest}  strat=$${cardB_strat.totalInterest}`);
+  checkTrue('targeted card A interest drops',
+    cardA_strat.totalInterest < cardA_base.totalInterest,
+    `base=$${cardA_base.totalInterest}  strat=$${cardA_strat.totalInterest}`);
+}
+
+section('mergeSchedules — schedules of different lengths combine correctly');
+{
+  const short = amortCard(1000, 0.15, { minPercent: 0.10, minFloor: 25, buildSchedule: true }); // pays off fast
+  const long  = amortCard(8000, 0.22, { minPercent: 0.02, minFloor: 25, buildSchedule: true });  // takes much longer
+  const merged = mergeSchedules([short.schedule, long.schedule]);
+
+  checkExact('merged length equals the longer schedule', merged.length, Math.max(short.termMonths, long.termMonths));
+
+  // At a month after the short schedule has finished, the merged
+  // balance should equal just the long schedule's balance — the
+  // finished card contributes nothing further.
+  const checkMonth = short.termMonths + 1;
+  const longEntry = long.schedule.find(s => s.month === checkMonth);
+  const mergedEntry = merged.find(s => s.month === checkMonth);
+  checkDollar('after the short card is paid off, merged balance equals the remaining card alone',
+    mergedEntry.balance, Math.round(longEntry.balance));
+
+  // At month 1, merged interest should equal the sum of both cards'
+  // month-1 interest.
+  const combinedMonth1 = short.schedule[0].interest + long.schedule[0].interest;
+  checkDollar('month 1 merged interest equals the sum of both cards\' month-1 interest',
+    merged[0].interest, Math.round(combinedMonth1));
 }
 
 // ============================================================

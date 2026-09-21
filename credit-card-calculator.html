@@ -104,6 +104,46 @@ main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 24px; }
 }
 .input-suffix input { padding-right: 28px; }
 
+/* ── Card mode selector ───────────────────────────────── */
+.mode-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  gap: 10px; margin-bottom: 20px;
+}
+.mode-btn {
+  border: 2px solid var(--border); border-radius: 8px;
+  padding: 12px 8px; cursor: pointer; background: var(--white);
+  text-align: center; transition: all .15s; font-size: 13px;
+  font-weight: 500; color: var(--text-light);
+}
+.mode-btn:hover { border-color: var(--c600); color: var(--c800); }
+.mode-btn.active {
+  border-color: var(--c600); background: var(--c50);
+  color: var(--c900); font-weight: 600;
+}
+.mode-btn .mode-icon { font-size: 20px; display: block; margin-bottom: 4px; }
+.mode-fields { display: none; }
+.mode-fields.active { display: block; }
+
+/* ── Multiple Cards ───────────────────────────────────── */
+.card-item {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px 16px; margin-bottom: 12px;
+}
+.card-item-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.card-item-name {
+  flex: 1; height: 36px; padding: 0 10px; border: 1px solid var(--border);
+  border-radius: 6px; font-size: 14px; font-weight: 600; color: var(--c900);
+  background: var(--white); font-family: inherit;
+}
+.card-item-name:focus { outline: none; border-color: var(--c600); }
+.apply-to-row { margin-top: 8px; }
+.list-item .apply-to-row { margin-top: 0; } /* inline within a flex row, not stacked below it */
+.apply-to-row select {
+  height: 34px; padding: 0 8px; border: 1px solid var(--border);
+  border-radius: 5px; font-size: 13px; background: var(--white); color: var(--text);
+  font-family: inherit;
+}
+
 /* ── Strategy toggle rows ────────────────────────────── */
 .strategy-card {
   background: var(--white); border: 1px solid var(--border);
@@ -154,6 +194,7 @@ main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 24px; }
   cursor: pointer; font-size: 18px; line-height: 1;
   padding: 0 4px; flex-shrink: 0;
 }
+.btn-remove:disabled { opacity: .3; cursor: not-allowed; }
 .btn-add {
   background: none; border: 1px dashed var(--c600); color: var(--c800);
   border-radius: 6px; padding: 7px 14px; font-size: 13px; cursor: pointer;
@@ -328,37 +369,60 @@ tfoot td:first-child { text-align: left; }
 <div id="tab-setup" class="tab-panel active">
 
   <div class="card">
-    <div class="card-title">Card Details</div>
-    <div class="form-grid">
-      <div class="form-group">
-        <label>Card Balance</label>
-        <div class="input-prefix"><span>$</span>
-          <input type="number" autocomplete="off" id="card-balance" value="5000" min="0" step="100">
-        </div>
-      </div>
-      <div class="form-group">
-        <label>Annual Interest Rate (APR)</label>
-        <div class="input-suffix"><span>%</span>
-          <input type="number" autocomplete="off" id="card-apr" value="19.94" min="0" max="40" step="0.05">
-        </div>
-      </div>
-      <div class="form-group">
-        <label>Minimum Repayment — % of Balance</label>
-        <div class="input-suffix"><span>%</span>
-          <input type="number" autocomplete="off" id="min-percent" value="2.5" min="0" max="10" step="0.1">
-        </div>
-      </div>
-      <div class="form-group">
-        <label>Minimum Repayment — Fixed Floor</label>
-        <div class="input-prefix"><span>$</span>
-          <input type="number" autocomplete="off" id="min-floor" value="25" min="0" step="5">
-        </div>
-      </div>
+    <div class="card-title">How Many Cards</div>
+    <div class="mode-grid">
+      <button class="mode-btn active" data-mode="single" type="button">
+        <span class="mode-icon">💳</span>Single Card
+      </button>
+      <button class="mode-btn" data-mode="multiple" type="button">
+        <span class="mode-icon">🗂️</span>Multiple Cards
+      </button>
     </div>
-    <p style="font-size:12px;color:var(--muted);margin-top:14px;">
-      Most issuers charge whichever is greater — the percentage or the fixed floor. Check your latest
-      statement and adjust these two fields to match your own card exactly.
-    </p>
+
+    <!-- Single card fields -->
+    <div id="fields-single" class="mode-fields active">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Card Balance</label>
+          <div class="input-prefix"><span>$</span>
+            <input type="number" autocomplete="off" id="card-balance" value="5000" min="0" step="100">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Annual Interest Rate (APR)</label>
+          <div class="input-suffix"><span>%</span>
+            <input type="number" autocomplete="off" id="card-apr" value="19.94" min="0" max="40" step="0.05">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Minimum Repayment — % of Balance</label>
+          <div class="input-suffix"><span>%</span>
+            <input type="number" autocomplete="off" id="min-percent" value="2.5" min="0" max="10" step="0.1">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Minimum Repayment — Fixed Floor</label>
+          <div class="input-prefix"><span>$</span>
+            <input type="number" autocomplete="off" id="min-floor" value="25" min="0" step="5">
+          </div>
+        </div>
+      </div>
+      <p style="font-size:12px;color:var(--muted);margin-top:14px;">
+        Most issuers charge whichever is greater — the percentage or the fixed floor. Check your latest
+        statement and adjust these two fields to match your own card exactly.
+      </p>
+    </div>
+
+    <!-- Multiple cards fields -->
+    <div id="fields-multiple" class="mode-fields">
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+        Each card is worked out independently and then combined. Rate Change Events below apply to
+        every card; use each strategy's "Apply to" selector on the Strategies tab to target extra
+        payments or lump sums at a specific card.
+      </p>
+      <div id="cards-list"></div>
+      <button class="btn-add" id="add-card" type="button">+ Add Card</button>
+    </div>
   </div>
 
   <!-- Rate change events -->
@@ -407,6 +471,10 @@ tfoot td:first-child { text-align: left; }
           </div>
         </div>
       </div>
+      <div class="apply-to-row hidden">
+        <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">Apply to</label>
+        <select class="apply-to-card" data-strategy="extra"></select>
+      </div>
     </div>
   </div>
 
@@ -449,6 +517,10 @@ tfoot td:first-child { text-align: left; }
         Common with balance-transfer offers. Reverts to your card's standard APR (set on the Card Setup
         tab) once the promotional period ends.
       </p>
+      <div class="apply-to-row hidden">
+        <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">Apply to</label>
+        <select class="apply-to-card" data-strategy="promo"></select>
+      </div>
     </div>
   </div>
 
@@ -537,6 +609,25 @@ tfoot td:first-child { text-align: left; }
     </div>
   </div>
 
+  <!-- Card summary (shown for Multiple Cards mode) -->
+  <div id="section-cards" class="card hidden">
+    <div class="card-title">Card Summary</div>
+    <div class="schedule-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="text-align:left">Card</th>
+            <th>Balance</th><th>APR</th>
+            <th>Total Interest</th><th>Interest Saved</th>
+            <th>Payoff Term</th>
+          </tr>
+        </thead>
+        <tbody id="cards-summary-tbody"></tbody>
+        <tfoot id="cards-summary-tfoot"></tfoot>
+      </table>
+    </div>
+  </div>
+
   <!-- No-results placeholder -->
   <div id="results-placeholder" class="card">
     <div class="placeholder-msg" style="min-height:160px;">
@@ -573,6 +664,12 @@ tfoot td:first-child { text-align: left; }
     <div class="toggle-row" id="sched-period-toggle">
       <button class="toggle-opt active" data-speriod="annual">Annual Summary</button>
       <button class="toggle-opt"        data-speriod="period">Monthly Detail</button>
+    </div>
+    <div class="form-group hidden" id="sched-card-wrap" style="min-width:160px;">
+      <label style="font-size:12px;color:var(--muted);">Card</label>
+      <select id="sched-card-select">
+        <option value="">Combined</option>
+      </select>
     </div>
   </div>
 
@@ -727,11 +824,45 @@ function amortCard(balance, annualRate, opts = {}) {
 }
 function buildScheduleFlag(opts) { return !!opts.buildSchedule; }
 
+// Combine any number of schedules by month, summing balance/interest/
+// principal. A schedule that's already finished contributes nothing
+// further to interest/principal/balance, since it simply has no more
+// entries to add. cumInterest is different — it's a running total, so
+// a finished card must keep contributing its own final cumInterest to
+// every later month rather than silently dropping out of the sum
+// (otherwise "Cum. Interest" would understate once any one card pays
+// off early). Each schedule's own entries are indexed by month with
+// no gaps, so this is a direct array lookup, not a per-month .find().
+function mergeSchedules(schedules) {
+  const byMonth = new Map();
+  for (const schedule of schedules) {
+    for (const entry of schedule) {
+      const row = byMonth.get(entry.month) || { month: entry.month, interest: 0, principal: 0, balance: 0 };
+      row.interest  += entry.interest;
+      row.principal += entry.principal;
+      row.balance   += entry.balance;
+      byMonth.set(entry.month, row);
+    }
+  }
+  const maxMonth = Math.max(0, ...schedules.map(s => s.length ? s[s.length - 1].month : 0));
+  const merged = [];
+  for (let m = 1; m <= maxMonth; m++) {
+    const row = byMonth.get(m) || { month: m, interest: 0, principal: 0, balance: 0 };
+    row.cumInterest = schedules.reduce((sum, s) => {
+      if (s.length === 0) return sum;
+      return sum + s[Math.min(m, s.length) - 1].cumInterest;
+    }, 0);
+    merged.push(row);
+  }
+  return merged;
+}
+
 // ═══════════════════════════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════════════════════════
 
 const fmt$ = n => '$' + Math.round(n).toLocaleString('en-AU');
+const fmtRate = r => (r * 100).toFixed(2) + '%';
 
 function termLabel(months) {
   const y = Math.floor(months / 12), m = months % 12;
@@ -786,6 +917,28 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 });
 
 // ═══════════════════════════════════════════════════════════
+// CARD MODE SWITCHING (Single Card / Multiple Cards)
+// ═══════════════════════════════════════════════════════════
+
+let currentMode = 'single';
+
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.mode-fields').forEach(f => f.classList.remove('active'));
+    btn.classList.add('active');
+    currentMode = btn.dataset.mode;
+    document.getElementById('fields-' + currentMode).classList.add('active');
+
+    // "Apply to card" selectors only make sense once there's more than
+    // one card.
+    const isMultiple = currentMode === 'multiple';
+    document.querySelectorAll('.apply-to-row').forEach(el => el.classList.toggle('hidden', !isMultiple));
+    if (isMultiple) refreshCardSelectors();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════
 // STRATEGY TOGGLES
 // ═══════════════════════════════════════════════════════════
 
@@ -814,6 +967,7 @@ function addLumpRow(afterMonth = '', amount = '') {
   const row = document.createElement('div');
   row.className = 'list-item';
   row.dataset.lumpId = id;
+  const multipleMode = currentMode === 'multiple';
   row.innerHTML = `
     <label>After month</label>
     <input type="number" autocomplete="off" class="lump-month" value="${afterMonth}" min="1" max="600" step="1" style="max-width:70px">
@@ -821,10 +975,13 @@ function addLumpRow(afterMonth = '', amount = '') {
     <div class="input-prefix" style="flex:1"><span>$</span>
       <input type="number" autocomplete="off" class="lump-amount" value="${amount}" min="0" step="100">
     </div>
+    <label class="apply-to-row${multipleMode ? '' : ' hidden'}">Card</label>
+    <select class="apply-to-card apply-to-row${multipleMode ? '' : ' hidden'}" data-strategy="lump" style="max-width:120px;"></select>
     <button class="btn-remove" title="Remove">×</button>
   `;
   row.querySelector('.btn-remove').addEventListener('click', () => row.remove());
   document.getElementById('lump-list').appendChild(row);
+  if (multipleMode) refreshCardSelectors();
 }
 
 document.getElementById('add-lump').addEventListener('click', () => addLumpRow());
@@ -834,6 +991,7 @@ function getLumpSums() {
   return [...document.querySelectorAll('#lump-list .list-item')].map(row => ({
     afterMonth: +row.querySelector('.lump-month').value,
     amount:     +row.querySelector('.lump-amount').value,
+    cardId:     row.querySelector('.apply-to-card')?.value || null,
   }));
 }
 
@@ -872,6 +1030,102 @@ function getRateEvents() {
 }
 
 // ═══════════════════════════════════════════════════════════
+// MULTIPLE CARDS LIST
+// ═══════════════════════════════════════════════════════════
+
+let cardCounter = 0;
+
+function addCardRow(name, fields = {}) {
+  cardCounter++;
+  const id = 'card-' + cardCounter;
+  const row = document.createElement('div');
+  row.className = 'card-item';
+  row.dataset.cardId = id;
+  row.innerHTML = `
+    <div class="card-item-head">
+      <input type="text" autocomplete="off" class="card-item-name" value="${name}" placeholder="Card name" maxlength="30">
+      <button class="btn-remove" title="Remove card">×</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Balance</label>
+        <div class="input-prefix"><span>$</span>
+          <input type="number" autocomplete="off" class="card-item-balance" value="${fields.balance ?? ''}" min="0" step="100">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>APR</label>
+        <div class="input-suffix"><span>%</span>
+          <input type="number" autocomplete="off" class="card-item-apr" value="${fields.apr ?? ''}" min="0" max="40" step="0.05">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Min Repayment %</label>
+        <div class="input-suffix"><span>%</span>
+          <input type="number" autocomplete="off" class="card-item-min-percent" value="${fields.minPercent ?? ''}" min="0" max="10" step="0.1">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Min Repayment Floor</label>
+        <div class="input-prefix"><span>$</span>
+          <input type="number" autocomplete="off" class="card-item-min-floor" value="${fields.minFloor ?? ''}" min="0" step="5">
+        </div>
+      </div>
+    </div>
+  `;
+
+  row.querySelector('.card-item-name').addEventListener('input', () => refreshCardSelectors());
+  row.querySelector('.btn-remove').addEventListener('click', () => {
+    if (document.querySelectorAll('#cards-list .card-item').length <= 1) return; // at least one required
+    row.remove();
+    refreshCardSelectors();
+  });
+
+  document.getElementById('cards-list').appendChild(row);
+}
+
+document.getElementById('add-card').addEventListener('click', () => {
+  addCardRow('Card', {});
+  refreshCardSelectors();
+});
+
+// Two sensible example cards by default, so the tab is never empty on
+// first view — matching every other tab's non-zero defaults.
+addCardRow('Card A', { balance: 5000, apr: 19.94, minPercent: 2.5, minFloor: 25 });
+addCardRow('Card B', { balance: 2500, apr: 24.99, minPercent: 2.5, minFloor: 25 });
+
+function getCards() {
+  return [...document.querySelectorAll('#cards-list .card-item')].map(row => ({
+    id:         row.dataset.cardId,
+    name:       row.querySelector('.card-item-name').value.trim() || 'Card',
+    balance:    +row.querySelector('.card-item-balance').value,
+    apr:        +row.querySelector('.card-item-apr').value / 100,
+    minPercent: +row.querySelector('.card-item-min-percent').value / 100,
+    minFloor:   +row.querySelector('.card-item-min-floor').value,
+  }));
+}
+
+// Rebuilds every "Apply to" selector's options from the current card
+// list — called whenever a card is added, removed, or renamed, so a
+// strategy can never silently point at a card that no longer exists.
+// Preserves the existing selection where the target card is still
+// valid, otherwise falls back to the first available option.
+function refreshCardSelectors() {
+  const cards = getCards();
+  document.querySelectorAll('.apply-to-card').forEach(select => {
+    const prevValue = select.value;
+    select.innerHTML = cards.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    if (cards.some(c => c.id === prevValue)) select.value = prevValue;
+    else if (cards.length) select.value = cards[0].id;
+  });
+
+  const rows = document.querySelectorAll('#cards-list .card-item');
+  rows.forEach(row => {
+    row.querySelector('.btn-remove').disabled = rows.length <= 1;
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
 // SCHEDULE TOGGLES
 // ═══════════════════════════════════════════════════════════
 
@@ -894,6 +1148,8 @@ document.getElementById('sched-period-toggle').addEventListener('click', e => {
   schedPeriod = btn.dataset.speriod;
   renderSchedule();
 });
+
+document.getElementById('sched-card-select').addEventListener('change', () => renderSchedule());
 
 // ═══════════════════════════════════════════════════════════
 // CHART INSTANCES
@@ -1004,18 +1260,35 @@ let lastResults = null;
 // READ INPUTS
 // ═══════════════════════════════════════════════════════════
 
+// Reads the current value of a strategy's single "Apply to" selector
+// (extra/promo each have exactly one; lump sums have one per row,
+// handled separately in getLumpSums()). Returns null outside Multiple
+// Cards mode, where it's meaningless.
+function getApplyToCard(strategyKey) {
+  const select = document.querySelector(`.apply-to-card[data-strategy="${strategyKey}"]`);
+  return select ? select.value : null;
+}
+
 function readInputs() {
-  const inputs = {};
-  inputs.balance    = +document.getElementById('card-balance').value;
-  inputs.apr        = +document.getElementById('card-apr').value / 100;
-  inputs.minPercent = +document.getElementById('min-percent').value / 100;
-  inputs.minFloor   = +document.getElementById('min-floor').value;
+  const mode = currentMode;
+  const inputs = { mode };
+
+  if (mode === 'multiple') {
+    inputs.cards = getCards();
+  } else {
+    inputs.balance    = +document.getElementById('card-balance').value;
+    inputs.apr        = +document.getElementById('card-apr').value / 100;
+    inputs.minPercent = +document.getElementById('min-percent').value / 100;
+    inputs.minFloor   = +document.getElementById('min-floor').value;
+  }
+
   inputs.rateEvents = getRateEvents();
 
   inputs.strats = {
     extra: {
       on: strategyState.extra,
       amount: +document.getElementById('extra-amount').value,
+      cardId: getApplyToCard('extra'),
     },
     lump: {
       on: strategyState.lump,
@@ -1025,6 +1298,7 @@ function readInputs() {
       on: strategyState.promo,
       rate:   +document.getElementById('promo-rate').value / 100,
       months: +document.getElementById('promo-months').value,
+      cardId: getApplyToCard('promo'),
     },
   };
 
@@ -1043,6 +1317,38 @@ function buildStratOpts(inp) {
   return { extraMonthly, lumpSums, promo };
 }
 
+// Multiple Cards variant of buildStratOpts() — instead of one opts
+// object applied to every card equally, each strategy is only applied
+// to whichever single card its "Apply to" selector targets (each Lump
+// Sum row targets its own card independently). Returns a
+// Map<cardId, opts>, left empty for a card nothing targets.
+function buildCardStratOpts(inp) {
+  const s = inp.strats;
+  const byCard = new Map();
+
+  function target(cardId) {
+    if (!byCard.has(cardId)) byCard.set(cardId, { extraMonthly: 0, lumpSums: [], promo: undefined });
+    return byCard.get(cardId);
+  }
+
+  if (s.extra.on && s.extra.cardId) {
+    target(s.extra.cardId).extraMonthly += s.extra.amount;
+  }
+
+  if (s.lump.on) {
+    for (const item of s.lump.items) {
+      if (!item.cardId) continue;
+      target(item.cardId).lumpSums.push({ afterMonth: item.afterMonth, amount: item.amount });
+    }
+  }
+
+  if (s.promo.on && s.promo.cardId) {
+    target(s.promo.cardId).promo = { rate: s.promo.rate, months: s.promo.months };
+  }
+
+  return byCard;
+}
+
 // ═══════════════════════════════════════════════════════════
 // MAIN CALCULATE
 // ═══════════════════════════════════════════════════════════
@@ -1050,14 +1356,64 @@ function buildStratOpts(inp) {
 function calculate() {
   const inp  = readInputs();
   const opts = buildStratOpts(inp);
-  const { balance, apr, minPercent, minFloor, rateEvents } = inp;
+  const mode = inp.mode;
 
-  const baseResult = amortCard(balance, apr, { minPercent, minFloor, rateEvents, buildSchedule: true });
-  const stratResult = amortCard(balance, apr, { minPercent, minFloor, rateEvents, ...opts, buildSchedule: true });
+  // Fields reset to blank rather than pre-filled defaults (see
+  // resetAll()), and Multiple Cards can legitimately have zero cards
+  // right after a reset — both mean calculate() can be asked to run
+  // before there's anything real to compute. Rather than silently
+  // produce $NaN/Infinity, stop and say so plainly.
+  if (mode === 'multiple' && inp.cards.length === 0) {
+    alert('Add at least one card before calculating.');
+    return false;
+  }
+
+  let baseResult, stratResult, balance, apr;
+
+  if (mode === 'multiple') {
+    const cards = inp.cards;
+    balance = cards.reduce((sum, c) => sum + c.balance, 0);
+    apr = cards.length ? cards[0].apr : 0; // representative only
+
+    const cardOptsMap = buildCardStratOpts(inp);
+    const baseCardResults = [];
+    const stratCardResults = [];
+
+    cards.forEach(c => {
+      const cOpts = cardOptsMap.get(c.id) || {};
+      const baseR  = amortCard(c.balance, c.apr, { minPercent: c.minPercent, minFloor: c.minFloor, rateEvents: inp.rateEvents, buildSchedule: true });
+      const stratR = amortCard(c.balance, c.apr, { minPercent: c.minPercent, minFloor: c.minFloor, rateEvents: inp.rateEvents, ...cOpts, buildSchedule: true });
+      baseCardResults.push({ id: c.id, name: c.name, balance: c.balance, apr: c.apr, ...baseR });
+      stratCardResults.push({ id: c.id, name: c.name, balance: c.balance, apr: c.apr, ...stratR });
+    });
+
+    baseResult = {
+      totalInterest: baseCardResults.reduce((s, r) => s + r.totalInterest, 0),
+      termMonths: Math.max(...baseCardResults.map(r => r.termMonths)),
+      schedule: mergeSchedules(baseCardResults.map(r => r.schedule)),
+      neverPaidOff: baseCardResults.some(r => r.neverPaidOff),
+      cardResults: baseCardResults,
+    };
+    stratResult = {
+      totalInterest: stratCardResults.reduce((s, r) => s + r.totalInterest, 0),
+      termMonths: Math.max(...stratCardResults.map(r => r.termMonths)),
+      schedule: mergeSchedules(stratCardResults.map(r => r.schedule)),
+      neverPaidOff: stratCardResults.some(r => r.neverPaidOff),
+      cardResults: stratCardResults,
+    };
+  } else {
+    balance = inp.balance;
+    apr = inp.apr;
+    const { minPercent, minFloor, rateEvents } = inp;
+
+    baseResult = amortCard(balance, apr, { minPercent, minFloor, rateEvents, buildSchedule: true });
+    stratResult = amortCard(balance, apr, { minPercent, minFloor, rateEvents, ...opts, buildSchedule: true });
+  }
 
   lastResults = { inp, opts, baseResult, stratResult, balance, apr };
 
   renderResults(inp, baseResult, stratResult, balance, apr);
+  return true;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1066,7 +1422,9 @@ function calculate() {
 
 function renderResults(inp, base, strat, balance, apr) {
   const saved = base.totalInterest - strat.totalInterest;
-  const firstMinPayment = Math.max(balance * inp.minPercent, inp.minFloor);
+  const firstMinPayment = inp.mode === 'multiple'
+    ? inp.cards.reduce((sum, c) => sum + Math.max(c.balance * c.minPercent, c.minFloor), 0)
+    : Math.max(balance * inp.minPercent, inp.minFloor);
 
   document.getElementById('m-repayment').textContent = fmt$(firstMinPayment);
   document.getElementById('m-total-interest').textContent = fmt$(base.totalInterest);
@@ -1122,13 +1480,68 @@ function renderResults(inp, base, strat, balance, apr) {
     { label: 'With strategies', data: stratAnn, backgroundColor: COLORS.strat, borderRadius: 3 },
   ], annLabels);
 
+  // ── Card summary ─────────────────────────────────────────
+  const cardsSection = document.getElementById('section-cards');
+  if (inp.mode === 'multiple') {
+    cardsSection.classList.remove('hidden');
+    renderCardSummary(base, strat);
+  } else {
+    cardsSection.classList.add('hidden');
+  }
+
   renderLoyaltyCallout(balance);
   renderSchedule();
+}
+
+// One row per card: balance/APR as entered, total interest and term
+// from the base (minimum-only) run, interest saved from comparing
+// against the strategy run for that same card.
+function renderCardSummary(base, strat) {
+  const rows = base.cardResults.map(b => {
+    const s = strat.cardResults.find(r => r.id === b.id);
+    return {
+      name: b.name,
+      balance: b.balance,
+      apr: b.apr,
+      totalInterest: b.totalInterest,
+      saved: b.totalInterest - (s ? s.totalInterest : b.totalInterest),
+      termMonths: s ? s.termMonths : b.termMonths,
+    };
+  });
+
+  document.getElementById('cards-summary-tbody').innerHTML = rows.map(r => `
+    <tr>
+      <td>${r.name}</td>
+      <td>${fmt$(r.balance)}</td>
+      <td>${fmtRate(r.apr)}</td>
+      <td>${fmt$(r.totalInterest)}</td>
+      <td class="text-success">${fmt$(r.saved)}</td>
+      <td>${termLabel(r.termMonths)}</td>
+    </tr>
+  `).join('');
+
+  const totals = rows.reduce((a, r) => ({
+    balance: a.balance + r.balance, totalInterest: a.totalInterest + r.totalInterest, saved: a.saved + r.saved,
+  }), { balance: 0, totalInterest: 0, saved: 0 });
+  document.getElementById('cards-summary-tfoot').innerHTML = `
+    <tr>
+      <td>Total</td>
+      <td>${fmt$(totals.balance)}</td><td>—</td>
+      <td>${fmt$(totals.totalInterest)}</td>
+      <td>${fmt$(totals.saved)}</td>
+      <td>—</td>
+    </tr>
+  `;
 }
 
 // ── Individual strategy savings breakdown ────────────────
 
 function renderBreakdownChart(inp, base, balance, apr) {
+  if (inp.mode === 'multiple') {
+    document.getElementById('placeholder-breakdown').classList.remove('hidden');
+    return;
+  }
+
   const s = inp.strats;
   const savedResults = [];
 
@@ -1183,9 +1596,30 @@ function renderLoyaltyCallout(balance) {
 
 function renderSchedule() {
   if (!lastResults) return;
-  const { baseResult, stratResult } = lastResults;
+  const { inp, baseResult, stratResult } = lastResults;
   const result = schedView === 'base' ? baseResult : stratResult;
-  const sched  = result.schedule;
+  let sched = result.schedule;
+
+  const cardWrap = document.getElementById('sched-card-wrap');
+  const cardSelect = document.getElementById('sched-card-select');
+  if (inp.mode === 'multiple') {
+    cardWrap.classList.remove('hidden');
+    const existingValues = [...cardSelect.options].map(o => o.value);
+    const wantedValues = ['', ...result.cardResults.map(c => c.id)];
+    if (existingValues.join(',') !== wantedValues.join(',')) {
+      const prev = cardSelect.value;
+      cardSelect.innerHTML = `<option value="">Combined</option>` +
+        result.cardResults.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+      cardSelect.value = wantedValues.includes(prev) ? prev : '';
+    }
+    if (cardSelect.value) {
+      const chosen = result.cardResults.find(c => c.id === cardSelect.value);
+      if (chosen) sched = chosen.schedule;
+    }
+  } else {
+    cardWrap.classList.add('hidden');
+  }
+
   if (!sched || sched.length === 0) return;
 
   document.getElementById('schedule-placeholder').classList.add('hidden');
@@ -1256,7 +1690,7 @@ function renderSchedule() {
 // ═══════════════════════════════════════════════════════════
 
 function calculateAndShowResults() {
-  calculate();
+  if (!calculate()) return;
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.querySelector('[data-tab="results"]').classList.add('active');
@@ -1283,6 +1717,16 @@ function resetAll() {
 
   document.getElementById('lump-list').innerHTML = '';
 
+  document.getElementById('cards-list').innerHTML = '';
+  refreshCardSelectors();
+
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.mode-fields').forEach(f => f.classList.remove('active'));
+  document.querySelector('.mode-btn[data-mode="single"]').classList.add('active');
+  document.getElementById('fields-single').classList.add('active');
+  currentMode = 'single';
+  document.querySelectorAll('.apply-to-row').forEach(el => el.classList.add('hidden'));
+
   const defaultStrategyState = { extra: false, lump: false, promo: false };
   Object.keys(defaultStrategyState).forEach(key => {
     strategyState[key] = defaultStrategyState[key];
@@ -1296,9 +1740,11 @@ function resetAll() {
     document.getElementById(id).classList.remove('hidden')
   );
   document.getElementById('results-placeholder').classList.remove('hidden');
+  document.getElementById('section-cards').classList.add('hidden');
 
   document.getElementById('schedule-placeholder').classList.remove('hidden');
   document.getElementById('schedule-table-wrap').classList.add('hidden');
+  document.getElementById('sched-card-wrap').classList.add('hidden');
   schedView = 'base';
   schedPeriod = 'annual';
   document.querySelectorAll('#sched-view-toggle .toggle-opt').forEach(b => b.classList.toggle('active', b.dataset.sview === 'base'));
