@@ -808,7 +808,7 @@ document.querySelectorAll('.strategy-header').forEach(header => {
 
 let lumpCounter = 0;
 
-function addLumpRow(afterMonth = 6, amount = 1000) {
+function addLumpRow(afterMonth = '', amount = '') {
   lumpCounter++;
   const id = lumpCounter;
   const row = document.createElement('div');
@@ -828,7 +828,7 @@ function addLumpRow(afterMonth = 6, amount = 1000) {
 }
 
 document.getElementById('add-lump').addEventListener('click', () => addLumpRow());
-addLumpRow(); // default one row
+addLumpRow(6, 1000); // one worked example on first-ever page load only; the button itself adds blank rows
 
 function getLumpSums() {
   return [...document.querySelectorAll('#lump-list .list-item')].map(row => ({
@@ -843,7 +843,7 @@ function getLumpSums() {
 
 let rateEventCounter = 0;
 
-function addRateEventRow(afterMonth = 18, rate = 24.99) {
+function addRateEventRow(afterMonth = '', rate = '') {
   rateEventCounter++;
   const id = rateEventCounter;
   const row = document.createElement('div');
@@ -1276,15 +1276,14 @@ document.getElementById('btn-run-all').addEventListener('click', calculateAndSho
 function resetAll() {
   FIELD_DEFAULTS.forEach((value, el) => {
     if (el.type === 'checkbox') el.checked = value;
-    else el.value = value;
+    else el.value = '';
   });
 
   document.getElementById('rate-events-list').innerHTML = '';
 
   document.getElementById('lump-list').innerHTML = '';
-  addLumpRow();
 
-  const defaultStrategyState = { extra: true, lump: true, promo: false };
+  const defaultStrategyState = { extra: false, lump: false, promo: false };
   Object.keys(defaultStrategyState).forEach(key => {
     strategyState[key] = defaultStrategyState[key];
     document.getElementById('toggle-' + key).classList.toggle('on', strategyState[key]);
